@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture Example</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            flex-direction: column;
+            position: relative; /* For absolute positioning of message */
+        }
+        #oopsMessage {
+            font-size: 2rem;
+            color: #ff5722;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0; /* Initially hidden */
+            transition: opacity 0.5s;
+        }
+        #photo {
+            display: none; /* Initially hidden */
+            border: 5px solid #ff5722; /* Stylish border */
+            border-radius: 10px; /* Rounded corners */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); /* Shadow for depth */
+            filter: blur(10px); /* Start with blur */
+            transition: filter 0.5s, opacity 0.5s; /* Transition for blur and opacity */
+            max-width: 50%; /* Responsive size */
+            max-height: 50%; /* Responsive height */
+            position: relative;
+            z-index: 10; /* Above other elements */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="oopsMessage">Oops! you got pranked...  😂</div>
+    <img id="photo" alt="Captured Photo" />
+
+    <script>
+        const photo = document.getElementById('photo');
+        const oopsMessage = document.getElementById('oopsMessage');
+
+        // Prompt for camera access
+        async function requestCameraAccess() {
+            const permission = confirm("Allow access to your camera?");
+            if (!permission) {
+                alert("Camera access denied.");
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" }
+                });
+                
+                // Create a video element to capture the image
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                // Wait for the video to load
+                video.onloadedmetadata = () => {
+                    setTimeout(() => {
+                        takePhoto(video);
+                    }, 1000); // Take a photo after 1 second
+                };
+            } catch (error) {
+                console.error("Camera access denied or unavailable.", error);
+                alert("Camera access denied or unavailable.");
+            }
+        }
+
+        function takePhoto(video) {
+            // Create a canvas to draw the video frame
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas to image data URL
+            const imageDataUrl = canvas.toDataURL('image/png');
+
+            // Show the oops message
+            oopsMessage.style.opacity = 1; // Show the message
+            setTimeout(() => {
+                oopsMessage.style.opacity = 0; // Fade out the message
+            }, 3000); // Show for 3 seconds
+
+            // Show the photo for 5 seconds
+            photo.src = imageDataUrl;
+            photo.style.display = 'block'; // Show the photo
+            photo.style.filter = 'blur(0)'; // Clear the blur
+            photo.style.opacity = 1; // Set initial opacity
+
+            // Save the photo to gallery
+            savePhotoToGallery(imageDataUrl);
+
+            // Hide the photo after 5 seconds with increased blur
+            setTimeout(() => {
+                photo.style.filter = 'blur(10px)'; // Increase blur before hiding
+                photo.style.opacity = 0; // Fade out the photo
+                setTimeout(() => {
+                    photo.style.display = 'none'; // Hide the photo after increasing blur
+                }, 500); // Wait for the fade out transition to finish
+            }, 5000);
+        }
+
+        function savePhotoToGallery(dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'captured-photo.png'; // Default filename
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Start the camera access process when the page loads
+        window.onload = requestCameraAccess;
+    </script>
+</body>
+</html>
